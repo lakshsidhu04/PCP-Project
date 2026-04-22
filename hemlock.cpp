@@ -25,6 +25,5 @@ void Hemlock::lock()
 
 void Hemlock::unlock()
 {
-    std::cout << "Thread " << std::this_thread::get_id() << " released lock\n";
     myNode->grant.store(0, std::memory_order_release);
 }
