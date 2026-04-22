@@ -1,12 +1,22 @@
 #include "hemlock.h"
+#include <iostream>
+
+thread_local std::vector<HemlockQNode> Hemlock::nodes(2);
+thread_local HemlockQNode *Hemlock::myNode = &Hemlock::nodes[0];
+thread_local bool Hemlock::flag = true;
 
 void Hemlock::lock()
 {
-    myNode.grant.store(0, std::memory_order_relaxed);
-    HemlockQNode *pred = tail.exchange(&myNode, std::memory_order_acq_rel);
+    myNode = flag ? &nodes[0] : &nodes[1];
+    flag = !flag;
+
+    myNode->grant.store(1, std::memory_order_relaxed);
+
+    HemlockQNode *pred = tail.exchange(myNode, std::memory_order_acq_rel);
+
     if (pred != nullptr)
     {
-        while (pred->grant.load(std::memory_order_acquire) == 0)
+        while (pred->grant.load(std::memory_order_acquire) == 1)
         {
             std::this_thread::yield();
         }
@@ -15,17 +25,6 @@ void Hemlock::lock()
 
 void Hemlock::unlock()
 {
-    HemlockQNode *qnode = &myNode;
-    if (tail.compare_exchange_strong(qnode, nullptr, std::memory_order_release))
-    {
-        return;
-    }
-
-    HemlockQNode *succ = tail.load(std::memory_order_acquire);
-    while (succ == nullptr || succ == qnode)
-    {
-        succ = tail.load(std::memory_order_acquire);
-    }
-
-    succ->grant.store(1, std::memory_order_release);
+    std::cout << "Thread " << std::this_thread::get_id() << " released lock\n";
+    myNode->grant.store(0, std::memory_order_release);
 }

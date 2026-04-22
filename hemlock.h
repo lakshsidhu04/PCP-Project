@@ -1,20 +1,23 @@
+#pragma once
 #include <atomic>
 #include <thread>
+#include <vector>
 
-class alignas(64) HemlockQNode
+struct HemlockQNode
 {
-public:
-    std::atomic<int> grant{0};
+    std::atomic<int> grant{1};
 };
 
 class Hemlock
 {
-    std::atomic<HemlockQNode *> tail{nullptr};
-    thread_local static HemlockQNode myNode;
-
 public:
     void lock();
     void unlock();
-};
 
-thread_local HemlockQNode Hemlock::myNode;
+private:
+    static thread_local std::vector<HemlockQNode> nodes;
+    static thread_local HemlockQNode *myNode;
+    static thread_local bool flag;
+
+    std::atomic<HemlockQNode *> tail{nullptr};
+};
