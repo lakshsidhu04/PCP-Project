@@ -18,20 +18,21 @@ long getCurrTime()
 class LockTester
 {
 public:
-    std::atomic<long> maxWaitTime{0};
     std::vector<int> threadCounts;
-    Lock* lock;
-    LockTester(int opt) {
-        if(opt==1){
+    Lock *lock;
+    LockTester(int opt)
+    {
+        if (opt == 1)
+        {
             lock = new Hemlock();
         }
-        else{
-        
+        else
+        {
         }
         threadCounts = {1, 2, 4, 8, 16, 32, 64, 128};
     }
 
-    void test(const std::string &outFileName,const std::string &maxTimeFileName)
+    void test(const std::string &outFileName)
     {
         std::ofstream outFile(outFileName);
         outFile.close();
@@ -40,9 +41,8 @@ public:
         {
             delete lock;
             lock = new Hemlock();
-            thrTimes.assign(cnt, 0);
-
             std::vector<std::thread> threads;
+            long startTime = getCurrTime();
             for (int i = 0; i < cnt; i++)
             {
                 threads.emplace_back(&LockTester::threadFunc, this, i);
@@ -51,59 +51,36 @@ public:
             {
                 t.join();
             }
+            long endTime = getCurrTime();
             
-            double avgTime = 0;
-            for (int i = 0; i < cnt; i++)
-            {
-                avgTime += thrTimes[i];
-            }
-            avgTime /= cnt * 100;
-            double variance = 0;
-            for (int i = 0; i < cnt; i++)
-            {
-                double diff = thrTimes[i] - avgTime;
-                variance += diff * diff;
-            }
-            variance /= cnt;
+            double timeSec = (endTime - startTime) / 1e6;
+            double throughput = (cnt * 100) / timeSec;
             std::ofstream out(outFileName, std::ios::app);
-            out << avgTime << std::endl;
-            std::ofstream maxTimeFile(maxTimeFileName, std::ios::app);
-            maxTimeFile << maxWaitTime.load() << " " << variance << std::endl;
+            out << throughput << std::endl;
             out.close();
-            maxTimeFile.close();
-
-            std::cout << "[" << outFileName << "] threads=" << cnt<< " avgWait=" << avgTime << " us" << std::endl;
         }
     }
 
 private:
-    std::vector<long> thrTimes;
-
-    void threadFunc( int threadId)
+    void threadFunc(int threadId)
     {
         std::mt19937 gen(42 + threadId);
         std::exponential_distribution<double> expo1(lambda1);
         std::exponential_distribution<double> expo2(lambda2);
         for (int i = 0; i < 100; i++)
         {
-            long reqTime = getCurrTime();
             lock->lock();
-            long actTime = getCurrTime();
             long sleepInside = (long)expo1(gen);
             std::this_thread::sleep_for(std::chrono::microseconds(sleepInside));
             lock->unlock();
-            thrTimes[threadId] += (actTime - reqTime);
-            if (thrTimes[threadId] > maxWaitTime.load())
-            {
-                maxWaitTime.store(thrTimes[threadId]);
-            }
             long sleepOutside = (long)expo2(gen);
             std::this_thread::sleep_for(std::chrono::microseconds(sleepOutside));
         }
     }
 };
 
-int main(){
+int main()
+{
     LockTester tester(1);
-    tester.test("scalability_hemlock.txt", "max_wait_hemlock.txt");
+    tester.test("throughput_hemlock.txt");
 }
