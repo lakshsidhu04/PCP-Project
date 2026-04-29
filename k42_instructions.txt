@@ -1,0 +1,84 @@
+compile:
+g++ -O3 -std=c++14 k42main.cpp -o benchmark_k42.exe -pthread (win, change exe to ./ if Linux/mac)
+
+run:
+benchmark_k42.exe 1
+benchmark_k42.exe 2
+benchmark_k42.exe 4
+benchmark_k42.exe 8
+benchmark_k42.exe 16
+
+expected output:
+benchmark_k42.exe 1
+Testing K42 Lock with 1 threads...
+Expected Counter: 1000000
+Actual Counter:   1000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.0180145 seconds
+Throughput:       55.5108 Million Ops/Sec
+
+benchmark_k42.exe 2
+Testing K42 Lock with 2 threads...
+Expected Counter: 2000000
+Actual Counter:   2000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.139223 seconds
+Throughput:       14.3654 Million Ops/Sec
+
+benchmark_k42.exe 4
+Testing K42 Lock with 4 threads...
+Expected Counter: 4000000
+Actual Counter:   4000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.283806 seconds
+Throughput:       14.0941 Million Ops/Sec
+
+benchmark_k42.exe 8
+Testing K42 Lock with 8 threads...
+Expected Counter: 8000000
+Actual Counter:   8000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.673476 seconds
+Throughput:       11.8787 Million Ops/Sec
+
+benchmark_k42.exe 16
+Testing K42 Lock with 16 threads...
+Expected Counter: 16000000
+Actual Counter:   16000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     4.69642 seconds
+Throughput:       3.40685 Million Ops/Sec
+
+-------
+
+
+EXTRA TESTS (use ONLY IF NECESSARY)
+Test A: The "Spaced Out" Physical Core Test
+We force Windows to put the 8 threads on 8 completely distinct physical cores (Cores 0, 2, 4, 6, 8, 10, 12, 14). They will not share L1/L2 caches; they only share the massive L3 cache.
+Run this command:
+
+start /b /affinity 5555 benchmark_k42.exe 8
+Note Ops/Sec
+
+expected:
+Testing K42 Lock with 8 threads...
+Expected Counter: 8000000
+Actual Counter:   8000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.650107 seconds
+Throughput:       12.3057 Million Ops/Sec
+
+
+Test B: The Hyper-Threading Test
+We force Windows to cram all 8 threads onto just 4 physical cores by using their logical hyper-threaded twins (Cores 0, 1, 2, 3, 4, 5, 6, 7). They will aggressively fight over and overwrite each other's tiny L1 caches.
+Run this command:
+
+start /b /affinity FF benchmark_k42.exe 8
+
+expected throughput is lower than above:
+Testing K42 Lock with 8 threads...
+Expected Counter: 8000000
+Actual Counter:   8000000
+[SUCCESS] Lock is mathematically correct
+Time Elapsed:     0.674778 seconds
+Throughput:       11.8558 Million Ops/Sec
