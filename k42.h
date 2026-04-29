@@ -1,10 +1,11 @@
 #include <atomic>
 #include <cstdint>
 #include <immintrin.h>
+#include "Lock.h"
 
 using namespace std;
 
-class K42Lock
+class K42Lock: public Lock
 {
 private:
     struct Node

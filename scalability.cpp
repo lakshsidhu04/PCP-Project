@@ -7,6 +7,7 @@
 #include <chrono>
 #include "Lock.h"
 #include "hemlock.h"
+#include "k42.h"
 
 double lambda1 = 1.0;
 double lambda2 = 2.0;
@@ -21,27 +22,35 @@ public:
     std::atomic<long> maxWaitTime{0};
     std::vector<int> threadCounts;
     Lock* lock;
+    int opt;
     LockTester(int opt) {
-        if(opt==1){
+        this->opt = opt;
+        delete lock;
+        if(opt == 1){
             lock = new Hemlock();
         }
-        else{
-        
+        else if(opt == 2){
+            lock = new K42Lock();
         }
-        threadCounts = {1, 2, 4, 8, 16, 32, 64, 128};
+        threadCounts = {1, 2, 4, 8, 16, 32, 64};
     }
 
     void test(const std::string &outFileName,const std::string &maxTimeFileName)
     {
         std::ofstream outFile(outFileName);
         outFile.close();
-
+        
         for (int cnt : threadCounts)
         {
             delete lock;
-            lock = new Hemlock();
+            if(opt == 1){
+                lock = new Hemlock();
+            }
+            else if(opt == 2){
+                lock = new K42Lock();
+            }
             thrTimes.assign(cnt, 0);
-
+            
             std::vector<std::thread> threads;
             for (int i = 0; i < cnt; i++)
             {
@@ -104,6 +113,9 @@ private:
 };
 
 int main(){
-    LockTester tester(1);
-    tester.test("scalability_hemlock.txt", "max_wait_hemlock.txt");
+    LockTester tester1(1);
+    tester1.test("scalability_hemlock.txt", "max_wait_hemlock.txt");
+    LockTester tester2(2);
+    tester2.test("scalability_k42.txt", "max_wait_k42.txt");
+    return 0;
 }

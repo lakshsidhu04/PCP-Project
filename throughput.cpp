@@ -7,6 +7,7 @@
 #include <chrono>
 #include "Lock.h"
 #include "hemlock.h"
+#include "k42.h"
 
 double lambda1 = 1.0;
 double lambda2 = 2.0;
@@ -20,14 +21,17 @@ class LockTester
 public:
     std::vector<int> threadCounts;
     Lock *lock;
+    int opt;
     LockTester(int opt)
     {
-        if (opt == 1)
-        {
+        this->opt = opt;
+        delete lock;
+        if (opt == 1)        {
             lock = new Hemlock();
         }
-        else
+        else if (opt == 2)
         {
+            lock = new K42Lock();
         }
         threadCounts = {1, 2, 4, 8, 16, 32, 64, 128};
     }
@@ -40,7 +44,12 @@ public:
         for (int cnt : threadCounts)
         {
             delete lock;
-            lock = new Hemlock();
+            if(opt == 1){
+                lock = new Hemlock();
+            }
+            else if(opt == 2){
+                lock = new K42Lock();
+            }
             std::vector<std::thread> threads;
             long startTime = getCurrTime();
             for (int i = 0; i < cnt; i++)
@@ -81,6 +90,9 @@ private:
 
 int main()
 {
-    LockTester tester(1);
-    tester.test("throughput_hemlock.txt");
+    LockTester tester1(1);
+    tester1.test("throughput_hemlock.txt");
+    LockTester tester2(2);
+    tester2.test("throughput_k42.txt");
+    return 0;
 }
