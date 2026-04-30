@@ -21,11 +21,10 @@ class LockTester
 public:
     std::atomic<long> maxWaitTime{0};
     std::vector<int> threadCounts;
-    Lock* lock;
+    Lock* lock = nullptr;
     int opt;
     LockTester(int opt) {
         this->opt = opt;
-        delete lock;
         if(opt == 1){
             lock = new Hemlock();
         }
