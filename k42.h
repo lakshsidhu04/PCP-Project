@@ -17,6 +17,19 @@ private:
     alignas(64) atomic<Node *> queueNext{nullptr};
     alignas(64) atomic<Node *> queueTail{nullptr};
 
+    static void adaptive_spin(int &spin_counter)
+    {
+        if (spin_counter < 100)
+        {
+            _mm_pause(); // Hardware hint: we are in a spin-loop
+            spin_counter++;
+        }
+        else
+        {
+            std::this_thread::yield(); // OS hint: let other threads run
+        }
+    }
+
     static inline void cpuRelax()
     {
         _mm_pause();
@@ -51,9 +64,11 @@ public:
 
             atomic_thread_fence(memory_order_seq_cst);
 
+            int spins = 0;
+
             while (myNode.waitFlag.load(memory_order_acquire) != nullptr)
             {
-                cpuRelax();
+                adaptive_spin(spins);
             }
         }
 
